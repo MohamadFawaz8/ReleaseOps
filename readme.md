@@ -11,12 +11,13 @@ The roadmap covers Linux, networking, Git and GitHub, GitHub Actions, CI/CD, a l
 - A small FastAPI service with `GET /` and `GET /health`.
 - Automated API contract tests and Ruff lint configuration.
 - Python 3.14 selection and a committed dependency lock file.
+- A learner-authored GitHub Actions CI workflow for lint, formatting, and API tests on pushes and pull requests targeting `main`, with a manual trigger available. Inspect execution results in the [Actions tab](https://github.com/MohamadFawaz8/ReleaseOps/actions).
 
 Verified on 2026-10-23 in Ubuntu 22.04 under WSL: Python 3.14.9, four passing tests, passing Ruff lint/format checks, live HTTP responses, and Windows-to-WSL localhost access. The temporary verification server was stopped afterward; start the service below to use it.
 
 ## Planned
 
-A browser interface, order processing, a database and queue, GitHub Actions and Jenkins pipelines, container packaging, local Kubernetes deployment, Terraform exercises, Nginx, monitoring, and operational exercises are planned roadmap items. They are not implemented yet. AWS work will be architecture study or local simulation; this project does not provision AWS resources.
+A browser interface, order processing, a database and queue, a local Jenkins pipeline, container packaging, image build/release automation, local Kubernetes deployment, Terraform exercises, Nginx, monitoring, and operational exercises are planned roadmap items. They are not implemented yet. AWS work will be architecture study or local simulation; this project does not provision AWS resources.
 
 ## Run locally
 
