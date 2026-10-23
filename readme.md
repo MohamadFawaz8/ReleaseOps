@@ -64,6 +64,6 @@ Use `curl -i http://127.0.0.1:8000/health` to inspect both the HTTP status (`200
 
 ## Learning evidence
 
-Start with [Lesson 01: API foundation](docs/lessons/01-api-foundation.md) for the architecture, source walkthrough, commands, troubleshooting, and exercises. The project brief records the longer roadmap and interview topics. Local coaching notes are intentionally not published.
+Start with [Lesson 01: API foundation](docs/lessons/01-api-foundation.md) for the architecture, source walkthrough, commands, troubleshooting, and exercises. Continue with [Lesson 02: CI failure and recovery](docs/lessons/02-ci-failure-recovery.md) for the controlled PR exercise and diagnosis. The project brief records the longer roadmap and interview topics. Local coaching notes are intentionally not published.
 
 Application scaffolding and dependency setup use assistant help. Docker, Kubernetes, GitHub Actions, Jenkins, Prometheus, and Grafana are planned as learner-executed milestones with step-by-step guidance, review, and troubleshooting.
