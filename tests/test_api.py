@@ -18,7 +18,7 @@ def test_root_returns_service_identity() -> None:
 def test_health_reports_responsive_process() -> None:
     response = client.get("/health")
 
-    assert response.status_code == 503
+    assert response.status_code == 200
     assert response.json() == {"status": "ok"}
     assert response.headers["content-type"].startswith("application/json")
 
