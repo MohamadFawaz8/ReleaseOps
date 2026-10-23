@@ -10,6 +10,8 @@
 .venv/
 __pycache__/
 *.pyc
+.pytest_cache/
+.ruff_cache/
 # Local coaching notes
 /AGENTS.md
 /LEARNING_LOG.md

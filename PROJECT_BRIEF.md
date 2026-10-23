@@ -4,6 +4,11 @@ Status: selected; the learner created https://github.com/MohamadFawaz8/ReleaseOp
 The architecture and sequence below remain a staged roadmap, not an instruction
 to build all components immediately.
 
+Learning ownership: the learner will manually install and configure Docker,
+Kubernetes, GitHub Actions, Jenkins, Prometheus, and Grafana with guided lessons.
+Assistant execution is authorized for application code, Python libraries, commits,
+and pushes, with explanations and verification at each milestone.
+
 ## Product idea
 A small order-processing platform. Users submit an order and track its status.
 Start with one Python API and a simple browser interface. Later add PostgreSQL,
