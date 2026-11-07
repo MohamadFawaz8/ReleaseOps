@@ -20,7 +20,7 @@ Path(path).write_text(
 )
 PY
 cleanup() {
-  docker compose --env-file "$env_file" -p "$project" down --volumes --remove-orphans >/dev/null 2>&1 || true
+  docker compose --env-file "$env_file" --profile monitoring -p "$project" down --volumes --remove-orphans >/dev/null 2>&1 || true
   rm -rf "$secret_dir"
 }
 trap cleanup EXIT INT TERM
@@ -47,3 +47,15 @@ source_count="$(docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$P
 restored_count="$(docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d releaseops_restore_check -Atc "SELECT count(*) FROM orders"')"
 [[ "$source_count" == "$restored_count" && "$source_count" -ge 2 ]]
 echo "PASS: separate-database restore preserves $restored_count order records."
+
+if [[ "${VERIFY_MONITORING:-0}" == 1 ]]; then
+  docker compose --env-file "$env_file" --profile monitoring -p "$project" \
+    up --detach --wait prometheus grafana alertmanager
+  docker compose --env-file "$env_file" --profile monitoring -p "$project" \
+    exec -T prometheus promtool check config /etc/prometheus/prometheus.yml
+  docker compose --env-file "$env_file" --profile monitoring -p "$project" \
+    exec -T prometheus promtool check rules /etc/prometheus/alerts.yml
+  docker compose --env-file "$env_file" --profile monitoring -p "$project" \
+    exec -T -e GRAFANA_PASSWORD="$GRAFANA_ADMIN_PASSWORD" \
+    -e GRAFANA_USER="$GRAFANA_ADMIN_USER" api python - < scripts/monitoring-smoke.py
+fi
