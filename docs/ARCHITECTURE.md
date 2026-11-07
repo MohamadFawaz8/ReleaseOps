@@ -34,6 +34,12 @@ flowchart LR
 availability. Neither means every accepted order has completed. Worker heartbeat,
 queue depth and completion metrics cover the background path separately.
 
+Readiness deliberately requires Redis even though durable processing can continue
+without its wake hints. This makes dependency loss visible and drains a Kubernetes
+API pod during that drill. A service whose availability policy treats Redis as
+optional could instead gate readiness only on PostgreSQL and expose Redis as a
+degraded metric; that policy change must update probes and recovery checks together.
+
 ## Deployment ownership
 
 | Layer | Owner | Scope |

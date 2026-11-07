@@ -93,8 +93,8 @@ cat .secrets/jenkins-admin-password
 Open [Jenkins](http://127.0.0.1:8081), sign in as `releaseops` with that local
 password. Wait for `releaseops-agent` to be online, open `releaseops-ci`, then
 **Build with Parameters**. Leave `DEPLOY_PREVIEW` false for verification, or select
-it to deploy to [the preview](http://127.0.0.1:8083). The first run may expose
-**Build Now** until Jenkins has read the parameters.
+it to deploy to [the preview](http://127.0.0.1:8083). The initial job definition
+already registers this parameter before the first build.
 
 The controller schedules jobs with zero executors. Its agent runs checks/builds
 against explicitly mounted source. This is a trusted local-workspace job, not an
@@ -150,6 +150,10 @@ If an official release host returns a regional/connectivity error, installation
 must fail rather than use an unchecked download. Inspect the URL and use an
 official-image fallback where available; do not substitute an arbitrary mirror.
 First-time node/image/provider downloads can take time.
+
+The separate **ReleaseOps Platform** Actions workflow verifies this sequence on
+an ephemeral runner-local cluster. It does not deploy to your laptop. See the
+verification record for hosted results and the separate local registry limitation.
 
 ```bash
 kubectl --context kind-releaseops -n releaseops get pods,svc,pvc
