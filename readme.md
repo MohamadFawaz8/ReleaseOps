@@ -1,6 +1,6 @@
 # ReleaseOps
 
-ReleaseOps is an order-processing platform built as a hands-on DevOps learning project. The lab is designed to use the learner's existing computer and free local tools: service and software costs remain USD 0, with no credit card, paid plan, or cloud trial required.
+ReleaseOps is an order-processing platform built as a hands-on DevOps learning project. 
 
 ## Project goals
 
@@ -62,8 +62,5 @@ Use `curl -i http://127.0.0.1:8000/health` to inspect both the HTTP status (`200
 - **Missing package or environment mismatch:** From the project root, run `uv sync --locked` again and review any reported lock-file mismatch before retrying the server or checks.
 - **uv cannot hardlink files and falls back to copying:** This can happen when the cache is in the Linux filesystem and the project is on a Windows-mounted drive (`/mnt/c`). Copying still installs the packages. If this warning applies to your setup, `uv sync --locked --link-mode=copy` explicitly selects copying.
 
-## Learning evidence
 
-Start with [Lesson 01: API foundation](docs/lessons/01-api-foundation.md) for the architecture, source walkthrough, commands, troubleshooting, and exercises. Continue with [Lesson 02: CI failure and recovery](docs/lessons/02-ci-failure-recovery.md) for the controlled PR exercise and diagnosis. The project brief records the longer roadmap and interview topics. Local coaching notes are intentionally not published.
 
-Application scaffolding and dependency setup use assistant help. Docker, Kubernetes, GitHub Actions, Jenkins, Prometheus, and Grafana are planned as learner-executed milestones with step-by-step guidance, review, and troubleshooting.
