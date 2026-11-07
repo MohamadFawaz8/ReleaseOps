@@ -48,7 +48,7 @@ services:
       context: .
       dockerfile: docker/jenkins-agent.Dockerfile
     entrypoint: [/opt/jenkins-agent-entrypoint]
-    command: ["-url", "http://jenkins:8080/", "releaseops-agent", "-workDir=/home/jenkins/agent", "-webSocket"]
+    command: ["-url", "http://jenkins:8080/", "-name", "releaseops-agent", "-workDir", "/home/jenkins/agent", "-webSocket"]
     environment:
       DOCKER_HOST: tcp://engine:2376
       DOCKER_TLS_VERIFY: "1"

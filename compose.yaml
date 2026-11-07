@@ -47,6 +47,8 @@ services:
     image: releaseops-api:${APP_VERSION:-0.1.0}
     build: {context: ., target: runtime}
     command: [python, -m, uvicorn, app.main:app, --host, 0.0.0.0, --port, "8000"]
+    # Socket timeouts start after DNS; bound musl resolver retries during outages too.
+    dns_opt: ["timeout:1", "attempts:1"]
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-releaseops}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-releaseops}
       REDIS_URL: redis://redis:6379/0
@@ -71,6 +73,7 @@ services:
     image: releaseops-api:${APP_VERSION:-0.1.0}
     build: {context: ., target: runtime}
     command: [python, -m, app.worker]
+    dns_opt: ["timeout:1", "attempts:1"]
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-releaseops}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-releaseops}
       REDIS_URL: redis://redis:6379/0

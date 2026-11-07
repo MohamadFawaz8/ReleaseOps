@@ -9,6 +9,7 @@ fi
 
 bin_dir="$HOME/.local/bin"
 mkdir -p "$bin_dir"
+export PATH="$bin_dir:$PATH"
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
 
