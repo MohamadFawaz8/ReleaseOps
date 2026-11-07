@@ -1,0 +1,52 @@
+groups:
+  - name: releaseops-service
+    rules:
+      - alert: ApiTargetDown
+        expr: up{job="releaseops-api"} == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: ReleaseOps API metrics endpoint is unavailable
+          description: Prometheus has not scraped the API successfully for one minute.
+      - alert: WorkerTargetDown
+        expr: up{job="releaseops-worker"} == 0
+        for: 1m
+        labels: {severity: warning}
+        annotations:
+          summary: ReleaseOps worker metrics endpoint is unavailable
+          description: Prometheus has not scraped worker metrics successfully for one minute.
+      - alert: ReleaseOpsQueueGrowing
+        expr: releaseops_queued_orders > 10
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: More than ten orders remain queued
+          description: Inspect worker logs and database state before restarting services.
+      - alert: ReleaseOpsHighApiLatency
+        expr: histogram_quantile(0.95, sum by (le) (rate(releaseops_http_request_duration_seconds_bucket[5m]))) > 0.5
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: API p95 request latency exceeds 500 milliseconds
+          description: Check dependencies, worker backlog, and recent changes.
+      - alert: ReleaseOpsWorkerHeartbeatStale
+        expr: time() - releaseops_worker_heartbeat_timestamp_seconds > 30
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: Worker heartbeat is older than 30 seconds
+          description: Inspect worker logs and dependency readiness; database polling is the durable queue fallback.
+      - alert: ReleaseOpsWorkerErrors
+        expr: increase(releaseops_worker_errors_total[5m]) > 0
+        for: 0m
+        labels: {severity: warning}
+        annotations:
+          summary: Worker loop reported an error
+          description: Review worker logs for database or processing exceptions.
+      - alert: ReleaseOpsRedisWakeFailures
+        expr: increase(releaseops_redis_wake_failures_total[5m]) > 0
+        for: 0m
+        labels: {severity: warning}
+        annotations:
+          summary: API could not send a Redis wake-up notification
+          description: PostgreSQL retains the order and worker polling is the fallback; inspect Redis health and API logs.

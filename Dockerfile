@@ -1,0 +1,27 @@
+FROM python:3.14.9-slim AS base
+
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /usr/local/bin/uv
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_PYTHON_DOWNLOADS=0
+
+WORKDIR /app
+ENV PATH="/app/.venv/bin:${PATH}"
+RUN useradd --no-log-init --create-home --uid 10001 appuser
+
+COPY pyproject.toml uv.lock ./
+
+FROM base AS dev-test
+RUN uv sync --locked --no-cache
+COPY app/ ./app/
+COPY tests/ ./tests/
+USER appuser
+CMD ["/app/.venv/bin/pytest", "-q"]
+
+FROM base AS runtime
+RUN uv sync --locked --no-dev --no-cache
+COPY app/ ./app/
+USER appuser
+EXPOSE 8000
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

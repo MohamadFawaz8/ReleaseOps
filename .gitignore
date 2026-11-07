@@ -5,13 +5,28 @@
 
 # Local credentials
 .secrets/
+.backups/
 
 # Python environment and generated files
 .venv/
 __pycache__/
 *.pyc
+*.db
 .pytest_cache/
 .ruff_cache/
-# Local coaching notes
-/AGENTS.md
-/LEARNING_LOG.md
+# Local infrastructure state, credentials, evidence, and database exports
+**/.terraform/
+**/terraform.tfstate
+**/terraform.tfstate.*
+**/*.tfplan
+**/crash.log
+**/*.tfvars
+!**/*.tfvars.example
+.local/
+backups/
+*.dump
+*.sql.gz
+*.pem
+*.key
+.kube/
+node_modules/

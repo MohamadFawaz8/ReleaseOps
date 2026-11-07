@@ -1,0 +1,85 @@
+name: releaseops-jenkins
+services:
+  agent-secret-init:
+    image: alpine:3.22
+    command: [sh, -c, "mkdir -p /run/jenkins-agent /home/jenkins/preview && chown 1000:1000 /run/jenkins-agent /home/jenkins/preview && chmod 0700 /run/jenkins-agent /home/jenkins/preview"]
+    volumes:
+      - jenkins_agent_secret:/run/jenkins-agent
+      - jenkins_preview_state:/home/jenkins/preview
+    restart: "no"
+
+  jenkins:
+    image: releaseops-jenkins:2.580.2-jdk21
+    build:
+      context: .
+      dockerfile: docker/jenkins.Dockerfile
+    environment:
+      JENKINS_ADMIN_ID: ${JENKINS_ADMIN_ID:-releaseops}
+      JENKINS_ADMIN_PASSWORD: ${JENKINS_ADMIN_PASSWORD:?Run scripts/jenkins-setup.sh}
+      JAVA_OPTS: -Djenkins.install.runSetupWizard=false -Xms256m -Xmx768m
+      CASC_JENKINS_CONFIG: /usr/local/share/jenkins/casc.yaml
+    volumes:
+      - jenkins_data:/var/jenkins_home
+      - ./Jenkinsfile:/workspace/Jenkinsfile:ro
+      - jenkins_agent_secret:/run/jenkins-agent
+    ports: ["127.0.0.1:8081:8080"]
+    depends_on:
+      agent-secret-init: {condition: service_completed_successfully}
+    mem_limit: 1536m
+    restart: unless-stopped
+    networks: [jenkins]
+
+  engine:
+    image: docker:28.3.3-dind
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
+    volumes:
+      - engine_data:/var/lib/docker
+      - engine_certs:/certs/client
+    ports: ["127.0.0.1:8083:8080"]
+    mem_limit: 2048m
+    restart: unless-stopped
+    networks: [jenkins]
+
+  agent:
+    image: releaseops-jenkins-agent:0.1.0
+    build:
+      context: .
+      dockerfile: docker/jenkins-agent.Dockerfile
+    entrypoint: [/opt/jenkins-agent-entrypoint]
+    command: ["-url", "http://jenkins:8080/", "releaseops-agent", "-workDir=/home/jenkins/agent", "-webSocket"]
+    environment:
+      DOCKER_HOST: tcp://engine:2376
+      DOCKER_TLS_VERIFY: "1"
+      DOCKER_CERT_PATH: /certs/client
+    volumes:
+      - ./app:/workspace/app:ro
+      - ./tests:/workspace/tests:ro
+      - ./docker:/workspace/docker:ro
+      - ./web:/workspace/web:ro
+      - ./scripts:/workspace/scripts:ro
+      - ./Dockerfile:/workspace/Dockerfile:ro
+      - ./.dockerignore:/workspace/.dockerignore:ro
+      - ./pyproject.toml:/workspace/pyproject.toml:ro
+      - ./uv.lock:/workspace/uv.lock:ro
+      - ./compose.yaml:/workspace/compose.yaml:ro
+      - jenkins_agent_secret:/run/jenkins-agent:ro
+      - engine_certs:/certs/client:ro
+      - jenkins_preview_state:/home/jenkins/preview
+    depends_on:
+      jenkins: {condition: service_started}
+      engine: {condition: service_started}
+    mem_limit: 768m
+    restart: unless-stopped
+    networks: [jenkins]
+
+volumes:
+  jenkins_data:
+  jenkins_agent_secret:
+  jenkins_preview_state:
+  engine_data:
+  engine_certs:
+networks:
+  jenkins:
+    driver: bridge

@@ -13,7 +13,7 @@ permissions:
 jobs:
   checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
 
     steps:
       - name: Check out repository
@@ -30,14 +30,14 @@ jobs:
       - name: Install project Python
         run: uv python install
 
-      - name: Install locked dependencies
-        run: uv sync --locked
+      - name: Run shared checks
+        run: bash scripts/check.sh
 
-      - name: Check code quality
-        run: uv run --locked ruff check .
+      - name: Prepare local credentials
+        run: bash scripts/local-secrets.sh
 
-      - name: Check formatting
-        run: uv run --locked ruff format --check .
+      - name: Build and exercise Compose stack
+        run: bash scripts/compose-smoke.sh
 
-      - name: Run tests
-        run: uv run --locked pytest -q
+      - name: Scan runtime images
+        run: bash scripts/scan-images.sh

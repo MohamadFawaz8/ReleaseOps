@@ -1,0 +1,25 @@
+jenkins:
+  systemMessage: "ReleaseOps local Jenkins. Bound to loopback; do not expose this service to an untrusted network."
+  numExecutors: 0
+  mode: NORMAL
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "${JENKINS_ADMIN_ID}"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+  remotingSecurity:
+    enabled: true
+  nodes:
+    - permanent:
+        name: "releaseops-agent"
+        remoteFS: "/home/jenkins/agent"
+        numExecutors: 1
+        labelString: "releaseops-linux"
+        mode: NORMAL
+        launcher:
+          inbound:
+            webSocket: true
