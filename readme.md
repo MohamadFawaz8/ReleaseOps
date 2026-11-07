@@ -1,66 +1,92 @@
 # ReleaseOps
 
-ReleaseOps is an order-processing platform built as a hands-on DevOps learning project. 
+A containerized order-processing platform with asynchronous workers, repeatable
+delivery workflows, infrastructure as code, and operational monitoring.
 
-## Project goals
+The browser submits synthetic orders. FastAPI persists each accepted order in
+PostgreSQL, Redis wakes a worker, and the worker records completion. Database
+polling and claim leases recover missed notifications and interrupted processing.
 
-The roadmap covers Linux, networking, Git and GitHub, GitHub Actions, CI/CD, a local Jenkins pipeline, Docker, local Kubernetes, Terraform, Nginx, monitoring, security, release management, and Bash/Python. It also includes incident response, runbooks, rollback, backup and restore, and AWS architecture study without provisioning billable AWS resources.
+```mermaid
+flowchart LR
+    Browser --> Nginx --> API[FastAPI]
+    API --> PostgreSQL
+    API --> Redis --> Worker
+    Worker --> PostgreSQL
+    Prometheus --> API
+    Prometheus --> Worker
+    Grafana --> Prometheus
+    Prometheus --> Alertmanager
+```
 
-## Implemented
+## Capabilities
 
-- A small FastAPI service with `GET /` and `GET /health`.
-- Automated API contract tests and Ruff lint configuration.
-- Python 3.14 selection and a committed dependency lock file.
-- A learner-authored GitHub Actions CI workflow for lint, formatting, and API tests on pushes and pull requests targeting `main`, with a manual trigger available. Inspect execution results in the [Actions tab](https://github.com/MohamadFawaz8/ReleaseOps/actions).
+- Order submission, recent orders, status tracking, validation and idempotent retries.
+- Non-root application containers, locked Python dependencies and shared checks.
+- Docker Compose deployment with persistent PostgreSQL storage and health checks.
+- GitHub Actions CI: lint, format, tests, disposable integration and image scanning.
+- Local Jenkins controller/agent with an isolated TLS Docker engine and optional
+  deployment to a persistent preview environment.
+- Local Kubernetes deployment using kind, Kustomize, probes, resource limits,
+  a StatefulSet and a schema initialization Job.
+- Terraform-managed namespace, resource quota, defaults and workload identity.
+- Prometheus metrics, Grafana dashboard, local alerts, backup/restore and recovery checks.
 
-Verified on 2026-10-23 in Ubuntu 22.04 under WSL: Python 3.14.9, four passing tests, passing Ruff lint/format checks, live HTTP responses, and Windows-to-WSL localhost access. The temporary verification server was stopped afterward; start the service below to use it.
+This runs on an existing computer without an AWS account, card or cloud resources.
+It uses synthetic orders and localhost access. A single computer does not provide
+high availability; external payments, public authentication and managed failover
+are outside the current scope.
 
-## Planned
+## Start with Docker Compose
 
-A browser interface, order processing, a database and queue, a local Jenkins pipeline, container packaging, image build/release automation, local Kubernetes deployment, Terraform exercises, Nginx, monitoring, and operational exercises are planned roadmap items. They are not implemented yet. AWS work will be architecture study or local simulation; this project does not provision AWS resources.
+Use an Ubuntu/WSL terminal in this repository. Docker Desktop must be running with
+WSL integration enabled for that Ubuntu distribution. `docker version` must show
+both Client and Server. See [complete setup](docs/DEPLOYMENT.md) for downloads and
+the optional Jenkins, Kubernetes and monitoring environments.
 
-## Run locally
+```bash
+bash scripts/local-secrets.sh       # Once: creates ignored local credentials
+bash scripts/build.sh               # Builds API/worker and browser images
+docker compose up -d --wait         # Starts database, Redis, schema, API, worker and web
+docker compose exec -T -e BASE_URL=http://web:8080 api python - < scripts/smoke.py
+```
 
-Use the Ubuntu terminal in the project root (the folder containing `pyproject.toml`). `uv` manages the Python 3.14 project environment and locked dependencies; `.venv/` is generated locally and ignored by Git. `pyproject.toml` declares project requirements and tool settings, while `uv.lock` records exact dependency versions for repeatable installs.
+Open [ReleaseOps](http://127.0.0.1:8080). Submit an order and watch it change from
+queued to completed. Stop with `docker compose down`; named database volumes are
+retained. **`down --volumes` deletes this deployment's stored data.**
 
-1. Install `uv` and Python 3.14 if they are not already available. Keep Ubuntu's system Python unchanged; `uv` can install and select a separate project interpreter.
-2. From the project root, synchronize the environment from the lock file:
+## Development and verification
 
-   ```bash
-   uv sync --locked
-   ```
+Python 3.14.9 is managed separately from Ubuntu's system Python by uv 0.13.5.
 
-   This creates/updates `.venv` and fails if `uv.lock` is missing or out of sync with `pyproject.toml`.
-3. Start the local development server:
+```bash
+uv python install
+bash scripts/check.sh               # Locked install, Ruff, formatting and pytest
+bash scripts/compose-smoke.sh       # Disposable real-database integration deployment
+bash scripts/recovery-check.sh     # Redis/worker recovery against the running main stack
+bash scripts/scan-images.sh         # Trivy HIGH/CRITICAL gate for both runtime images
+```
 
-   ```bash
-   uv run --locked uvicorn app.main:app --host 127.0.0.1 --port 8000
-   ```
+The CI workflow and Jenkins pipeline reuse these scripts. Integration containers
+and volumes have a unique project name and are removed afterward. The recovery
+check adds a synthetic order to the main deployment and restores stopped services.
 
-   `uv run` uses the project environment. `app.main:app` tells Uvicorn to import the object named `app` from `app/main.py`. Binding to `127.0.0.1` limits the listener to the local environment. Port `8000` is where the server listens. For automatic reload while editing, add `--reload` to this command. Windows can normally reach a WSL service through localhost forwarding; custom WSL networking or firewall settings can affect this.
-4. Visit `http://127.0.0.1:8000/`, `http://127.0.0.1:8000/health`, and `http://127.0.0.1:8000/docs` in a browser. The first two return JSON; `/docs` shows FastAPI's interactive API documentation. `/health` reports only that the process responds; it does not check database or other dependency readiness.
-5. In a second Ubuntu terminal, also in the project root, run the checks:
+| Endpoint | Contract |
+| --- | --- |
+| `GET /health` | Process responsiveness |
+| `GET /ready` | Database and Redis availability; 503 on dependency failure |
+| `POST /api/orders` | 202 accepted; optional `Idempotency-Key`; 409 on changed-key reuse |
+| `GET /api/orders` | Recent orders; bounded `limit` |
+| `GET /api/orders/{id}` | Order status; 404 for unknown UUID |
+| API `GET /metrics` | Prometheus metrics, internal container port 8000 |
 
-   ```bash
-   uv run --locked pytest -q
-   uv run --locked ruff check .
-   uv run --locked ruff format --check .
-   ```
+## Documentation
 
-   Pytest checks the response contracts and HTTP errors. Ruff checks code style and import ordering, and its format check confirms files already follow Ruff's formatter.
-6. Stop the server with `Ctrl+C` in the terminal where it is running.
+- [Architecture and design decisions](docs/ARCHITECTURE.md)
+- [Installation, configuration and deployment](docs/DEPLOYMENT.md)
+- [Operations, recovery and release runbooks](docs/OPERATIONS.md)
+- [Validation evidence and current limits](docs/VERIFICATION.md)
 
-### HTTP exercise
-
-Use `curl -i http://127.0.0.1:8000/health` to inspect both the HTTP status (`200`) and JSON response. Then request a nonexistent path such as `/missing` and observe `404`; use `curl -i -X POST http://127.0.0.1:8000/health` to observe `405` because the endpoint accepts GET. Explain the difference between a server process answering a health request and all downstream dependencies being ready.
-
-### Troubleshooting
-
-- **`uv: command not found`:** `uv` is not installed in this Ubuntu shell or its executable directory is not on `PATH`. Complete the uv installation step, then open a fresh terminal and check `uv --version`.
-- **Browser says connection refused:** Check that the server command is still running and that the address uses `127.0.0.1:8000`. A startup traceback means the server did not start; read the first error in that terminal.
-- **Port 8000 is already in use:** In Ubuntu, run `ss -ltnp` and look for a listener on port `8000`. Stop the other process if it is yours, or choose another port in the Uvicorn command and browser URL.
-- **Missing package or environment mismatch:** From the project root, run `uv sync --locked` again and review any reported lock-file mismatch before retrying the server or checks.
-- **uv cannot hardlink files and falls back to copying:** This can happen when the cache is in the Linux filesystem and the project is on a Windows-mounted drive (`/mnt/c`). Copying still installs the packages. If this warning applies to your setup, `uv sync --locked --link-mode=copy` explicitly selects copying.
-
-
-
+Repository secrets, local environment files, Terraform state, database dumps and
+generated environments are excluded from Git. Review changes and scan results
+before release; a successful build alone does not prove service health.

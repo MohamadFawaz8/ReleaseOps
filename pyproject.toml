@@ -1,10 +1,14 @@
 [project]
 name = "releaseops"
 version = "0.1.0"
-description = "A small service for the ReleaseOps DevOps learning project."
+description = "A containerized order-processing platform with asynchronous fulfillment."
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "fastapi>=0.161.1",
+    "prometheus-client>=0.26.0",
+    "psycopg[binary]>=3.3.8",
+    "redis>=8.1.0",
+    "sqlalchemy>=2.1.8",
     "uvicorn>=0.54.0",
 ]
 

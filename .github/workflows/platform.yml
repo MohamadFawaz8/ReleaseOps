@@ -1,0 +1,84 @@
+name: ReleaseOps Platform
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local-platform:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Terraform, kind, and kubectl
+        run: |
+          bash scripts/install-platform-tools.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Build application images
+        run: bash scripts/build.sh
+
+      - name: Create the ephemeral kind cluster
+        run: bash scripts/cluster-up.sh
+
+      - name: Initialize Terraform and print provider lock evidence
+        run: |
+          terraform -chdir=infra/terraform init -input=false -no-color
+          echo PROVIDER_LOCK_BEGIN
+          cat infra/terraform/.terraform.lock.hcl
+          echo PROVIDER_LOCK_END
+
+      - name: Format, validate, plan, and apply local platform resources
+        run: |
+          terraform -chdir=infra/terraform fmt -check
+          terraform -chdir=infra/terraform validate -no-color
+          terraform -chdir=infra/terraform plan -input=false -no-color -out=platform.tfplan
+          terraform -chdir=infra/terraform apply -input=false -no-color -auto-approve platform.tfplan
+
+      - name: Create local database secret
+        run: bash scripts/k8s-secrets.sh
+
+      - name: Deploy application workloads
+        run: bash scripts/k8s-deploy.sh
+
+      - name: Smoke test order lifecycle through Kubernetes web service
+        run: bash scripts/k8s-smoke.sh --no-forward
+
+      - name: Diagnose failed Kubernetes run
+        if: failure()
+        shell: bash
+        run: |
+          if ! command -v kubectl >/dev/null || ! kind get clusters | grep -Fxq releaseops; then
+            echo "The named releaseops kind cluster is unavailable; no diagnostics to collect."
+            exit 0
+          fi
+          kubectl --context kind-releaseops -n releaseops get pods,events --sort-by=.metadata.creationTimestamp || true
+          while IFS= read -r pod; do
+            [[ -z "$pod" ]] || kubectl --context kind-releaseops -n releaseops describe "$pod" || true
+          done < <(kubectl --context kind-releaseops -n releaseops get pods -o name 2>/dev/null || true)
+          for workload in deployment/api deployment/worker statefulset/db deployment/web; do
+            kubectl --context kind-releaseops -n releaseops logs "$workload" --all-containers=true --tail=80 || true
+          done
+
+      - name: Delete only the ephemeral releaseops kind cluster
+        if: always()
+        shell: bash
+        run: |
+          if command -v kind >/dev/null && kind get clusters | grep -Fxq releaseops; then
+            kind delete cluster --name releaseops
+          fi

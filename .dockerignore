@@ -1,0 +1,13 @@
+# Only explicit build inputs enter the Docker context.
+**
+!Dockerfile
+!pyproject.toml
+!uv.lock
+!app/
+!app/**
+!tests/
+!tests/**
+!web/
+!web/**
+!docker/
+!docker/**

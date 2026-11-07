@@ -1,5 +1,9 @@
 name: ReleaseOps CI
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -13,7 +17,7 @@ permissions:
 jobs:
   checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
 
     steps:
       - name: Check out repository
@@ -30,14 +34,46 @@ jobs:
       - name: Install project Python
         run: uv python install
 
-      - name: Install locked dependencies
-        run: uv sync --locked
+      - name: Run shared checks
+        run: bash scripts/check.sh
 
-      - name: Check code quality
-        run: uv run --locked ruff check .
+      - name: Prepare local credentials
+        run: bash scripts/local-secrets.sh
 
-      - name: Check formatting
-        run: uv run --locked ruff format --check .
+      - name: Build and exercise Compose stack
+        env:
+          VERIFY_MONITORING: "1"
+        run: bash scripts/compose-smoke.sh
 
-      - name: Run tests
-        run: uv run --locked pytest -q
+      - name: Scan runtime images
+        run: bash scripts/scan-images.sh
+
+  jenkins:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Start isolated Jenkins environment
+        env:
+          COMPOSE_PROGRESS: quiet
+        run: bash scripts/jenkins-setup.sh
+
+      - name: Verify agent and preview release pipeline
+        run: python3 scripts/jenkins-smoke.py
+
+      - name: Inspect failed Jenkins startup
+        if: failure()
+        run: |
+          export JENKINS_ADMIN_PASSWORD="$(cat .secrets/jenkins-admin-password)"
+          echo "::add-mask::$JENKINS_ADMIN_PASSWORD"
+          docker compose -f compose.jenkins.yaml logs --tail=100 jenkins agent engine
+
+      - name: Remove isolated Jenkins resources
+        if: always()
+        run: |
+          export JENKINS_ADMIN_PASSWORD="$(cat .secrets/jenkins-admin-password)"
+          docker compose -f compose.jenkins.yaml down --volumes --remove-orphans

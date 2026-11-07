@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#102a43" />
+    <title>ReleaseOps Order Desk</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="ReleaseOps home"><span class="brand-mark">R</span> ReleaseOps</a>
+      <div class="health" aria-live="polite"><span id="service-dot" class="dot unknown"></span><span id="service-status">Checking services</span></div>
+    </header>
+    <main>
+      <section class="intro">
+        <p class="eyebrow">ORDER OPERATIONS</p>
+        <h1>Order desk</h1>
+        <p class="subhead">Submit a sample order and follow its progress through processing.</p>
+      </section>
+      <section class="layout">
+        <article class="card form-card">
+          <div class="card-heading"><div><p class="eyebrow">NEW REQUEST</p><h2>Create an order</h2></div><span class="step">01</span></div>
+          <form id="order-form">
+            <label for="product">Product</label>
+            <input id="product" name="product" maxlength="120" required placeholder="e.g. blue notebook" />
+            <label for="quantity">Quantity</label>
+            <input id="quantity" name="quantity" type="number" min="1" max="10000" step="1" value="1" required />
+            <button id="submit-button" type="submit">Submit order <span aria-hidden="true">→</span></button>
+          </form>
+          <p id="form-message" class="form-message" aria-live="polite">Sample orders only. No payment or personal data is collected.</p>
+        </article>
+        <article class="card latest-card">
+          <div class="card-heading"><div><p class="eyebrow">LIVE TRACKING</p><h2>Latest order</h2></div><span class="step">02</span></div>
+          <div id="latest-order" class="empty-state"><div class="empty-icon">↗</div><p>Your submitted order will appear here.</p></div>
+          <button id="refresh-button" class="quiet-button" type="button">Refresh status</button>
+        </article>
+      </section>
+      <section class="card orders-card">
+        <div class="card-heading"><div><p class="eyebrow">RECENT ACTIVITY</p><h2>Order queue</h2></div><button id="list-refresh" class="quiet-button" type="button">Refresh list</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Qty</th><th>Status</th><th>Created</th></tr></thead><tbody id="orders-body"><tr><td colspan="5" class="empty-row">Loading orders…</td></tr></tbody></table></div>
+      </section>
+      <footer><span>ReleaseOps · Order Operations</span><span>API status <a href="/ready">/ready</a></span></footer>
+    </main>
+  </body>
+</html>
