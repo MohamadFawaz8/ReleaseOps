@@ -74,6 +74,6 @@ else
 fi
 
 echo "Add $bin_dir to PATH if needed: export PATH=\"$bin_dir:\$PATH\""
-"$bin_dir/terraform" version
-"$bin_dir/kind" version
+terraform version
+kind version
 kubectl version --client
