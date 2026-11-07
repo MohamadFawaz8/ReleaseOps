@@ -26,3 +26,24 @@ cleanup() {
 trap cleanup EXIT INT TERM
 docker compose --env-file "$env_file" -p "$project" up --build --detach --wait
 docker compose --env-file "$env_file" -p "$project" exec -T -e BASE_URL=http://web:8080 api python - < scripts/smoke.py
+
+# Generated values are URL-safe shell assignments. Export them so shared
+# operational scripts address this disposable project, never the main deployment.
+set -a
+source "$env_file"
+set +a
+export COMPOSE_PROJECT_NAME="$project"
+export BACKUP_DIR="$secret_dir/backups"
+bash scripts/recovery-check.sh
+bash scripts/backup.sh
+backups=("$BACKUP_DIR"/*.dump)
+if [[ ${#backups[@]} != 1 || ! -f "${backups[0]}" ]]; then
+  echo 'Expected exactly one disposable backup.' >&2
+  exit 1
+fi
+bash scripts/restore.sh --backup "${backups[0]}" --target releaseops_restore_check
+bash scripts/restore.sh --backup "${backups[0]}" --target releaseops_restore_check --apply
+source_count="$(docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT count(*) FROM orders"')"
+restored_count="$(docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d releaseops_restore_check -Atc "SELECT count(*) FROM orders"')"
+[[ "$source_count" == "$restored_count" && "$source_count" -ge 2 ]]
+echo "PASS: separate-database restore preserves $restored_count order records."
