@@ -2,7 +2,7 @@
   "id": null,
   "uid": "releaseops-local",
   "title": "ReleaseOps local operations",
-  "tags": ["releaseops", "lab"],
+  "tags": ["releaseops", "operations"],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,

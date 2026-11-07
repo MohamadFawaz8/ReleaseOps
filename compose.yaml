@@ -100,7 +100,7 @@ services:
     networks: [backend]
 
   prometheus:
-    image: prom/prometheus:v3.5.0
+    image: prom/prometheus:v3.16.0
     profiles: [monitoring]
     command: [--config.file=/etc/prometheus/prometheus.yml, --storage.tsdb.path=/prometheus, --storage.tsdb.retention.time=7d, --web.enable-lifecycle]
     volumes: [./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro, ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro, prometheus_data:/prometheus]
@@ -109,7 +109,7 @@ services:
     networks: [backend]
 
   grafana:
-    image: grafana/grafana:12.1.1
+    image: grafana/grafana:13.3.0
     profiles: [monitoring]
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
@@ -126,7 +126,7 @@ services:
     networks: [backend]
 
   alertmanager:
-    image: prom/alertmanager:v0.28.1
+    image: prom/alertmanager:v0.34.2
     profiles: [monitoring]
     command: [--config.file=/etc/alertmanager/alertmanager.yml]
     volumes: [./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro]

@@ -10,6 +10,9 @@ if (job == null) {
   job = j.createProject(org.jenkinsci.plugins.workflow.job.WorkflowJob, 'releaseops-ci')
 }
 job.setDefinition(new org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition(new File('/workspace/Jenkinsfile').text, true))
+job.addProperty(new hudson.model.ParametersDefinitionProperty(
+  new hudson.model.BooleanParameterDefinition('DEPLOY_PREVIEW', false, 'Deploy a checked revision to the local preview')
+))
 job.setDescription('Local ReleaseOps CI pipeline. Trigger manually from Jenkins after updating the mounted source workspace.')
 job.save()
 j.save()
